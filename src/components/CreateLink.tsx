@@ -1,5 +1,6 @@
 import React, {useReducer} from 'react';
 import {gql, useMutation} from "@apollo/client";
+import {History} from 'history';
 
 interface State {
     description?: string
@@ -8,6 +9,10 @@ interface State {
 
 interface Action extends State{
     type: 'SET_DESCRIPTION' | 'SET_URL'
+}
+
+interface CreateLinkProps{
+    history: History
 }
 
 const POST_MUTATION = gql`
@@ -38,13 +43,14 @@ const linkReducer = (state: State, action: Action) => {
     }
 };
 
-const CreateLink = (() => {
+const CreateLink: React.FC<CreateLinkProps> = (({history}) => {
     let [state, dispatch] = useReducer(linkReducer, {
         description: '',
         url: ''
     });
     const [savePost, {error, data}] = useMutation(POST_MUTATION, {
-        variables: {...state}
+        variables: {...state},
+        onCompleted: () => history.push('/')
     });
 
     return <div>
