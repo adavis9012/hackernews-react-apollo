@@ -1,5 +1,11 @@
 import React, {useReducer} from 'react';
 import {AUTH_TOKEN} from "../constants";
+import {gql, useMutation} from "@apollo/client";
+import {History} from 'history';
+
+interface LoginProps {
+    history: History
+}
 
 interface State {
     login?: boolean
@@ -11,6 +17,27 @@ interface State {
 interface Action extends State{
     type: 'SET_LOGIN' | 'SET_EMAIL' | 'SET_PASSWORD' | 'SET_NAME'
 }
+
+interface Data {
+    login: any
+    signup: any
+}
+
+const SIGNUP_MUTATION = gql`
+    mutation SignupMutation($email: String!, $password: String!, $name: String!) {
+        signup(email: $email, password: $password, name: $name) {
+            token
+        }
+    }
+`;
+
+const LOGIN_MUTATION = gql`
+    mutation LoginMutation($email: String!, $password: String!) {
+        login(email: $email, password: $password) {
+            token
+        }
+    }
+`;
 
 const loginReducer = (state: State, action: Action) => {
    switch (action.type) {
@@ -39,16 +66,29 @@ const loginReducer = (state: State, action: Action) => {
    }
 }
 
-const Login = (() => {
+const Login: React.FC<LoginProps> = (({history}) => {
     let [state, dispatch] = useReducer(loginReducer, {
         login: true,
         email: '',
         password: '',
         name: ''
     });
+    const mutationType = state.login ? LOGIN_MUTATION : SIGNUP_MUTATION;
 
-    async function handleConfirm() {
+    const [loginMutation, {error, data: Data}] = useMutation(mutationType, {
+        variables: {
+            email: state.email,
+            password: state.password,
+            name: state.password
+        },
+        onCompleted: (data => handleConfirm(data))
+    });
 
+    async function handleConfirm(data: Data) {
+        const {token} = state.login ? data.login : data.signup;
+
+        saveUserData(token);
+        history.push('/');
     }
 
     function saveUserData(token: string) {
@@ -80,7 +120,7 @@ const Login = (() => {
             />
         </div>
         <div className="flex mt3">
-            <div className="pointer mr2 button" onClick={handleConfirm}>
+            <div className="pointer mr2 button" onClick={() => loginMutation()}>
                 {state.login ? 'login' : 'create account'}
             </div>
             <div
